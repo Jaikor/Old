@@ -1,0 +1,254 @@
+require "VPrediction"
+require "SOW"
+if myHero.charName ~= "Udyr" then return end
+local version = 1.3
+local autoUpdate   = true
+local scriptName = "JKUdyr"
+local sourceLibFound = true
+local VP = VPrediction()	
+require "SourceLib"
+--[[
+if FileExist(LIB_PATH .. "SourceLib.lua") then
+    require "SourceLib"
+else
+    sourceLibFound = false
+    DownloadFile("https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua", LIB_PATH .. "SourceLib.lua", function() print("<font color=\"#6699ff\"><b>" .. scriptName .. ":</b></font> <font color=\"#FFFFFF\">SourceLib downloaded! Please reload!</font>") end)
+end
+if not sourceLibFound then return end
+
+-- Updater
+if autoUpdate then
+    SourceUpdater(scriptName, version, "raw.github.com", "/Jaikor/BoL/master/JKUdyr.lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/Jaikor/BoL/master/Versions/JKudyr.version"):SetSilent(silentUpdate):CheckUpdate()
+end
+--]]
+
+function OnLoad()
+	VP = VPrediction()
+	qRng, wRng, eRng, rRng = 600, 600, 600, 600
+	EnemyMinions = minionManager(MINION_ENEMY, rRng, myHero, MINION_SORT_MAXHEALTH_DEC)
+	JungleMinions = minionManager(MINION_JUNGLE, rRng, myHero, MINION_SORT_MAXHEALTH_DEC)
+	qLevel = myHero:GetSpellData(_Q).level
+	rLevel = myHero:GetSpellData(_R).level
+	AttackCount, TurtleCount = 0, 0
+	FlameBreath, TigerProc = false, false
+	Q = Spell(_Q, qRng)
+	W = Spell(_W, wRng)
+	E = Spell(_E, eRng)
+	R = Spell(_R, rRng)
+    DLib = DamageLib()
+	--DamageLib:RegisterDamageSource(spellId, damagetype, basedamage, perlevel, scalingtype, scalingstat, percentscaling, condition, extra)
+	DLib:RegisterDamageSource(_Q, _PHYSICAL, 60, 50, _PHYSICAL, _AD, 0.10, function() return (player:CanUseSpell(_Q) == READY)end)
+	DLib:RegisterDamageSource(_W, _MAGIC, 60, 40, _MAGIC, _AP, 0.50, function() return (player:CanUseSpell(_W) == READY)end)
+	DLib:RegisterDamageSource(_E, _MAGIC, 20, 10, _MAGIC, _AP, 0.40, function() return (player:CanUseSpell(_E) == READY)end)
+	DLib:RegisterDamageSource(_R, _MAGIC, 75, 50, _MAGIC, _AP, 1.25, function() return (player:CanUseSpell(_R) == READY)end)
+	BRK = Item(3153,250)
+	Menu = scriptConfig("JKUdyr","JKUdyr")
+	-- Key Binds
+	Menu:addSubMenu("Key Bindings","bind")
+	Menu.bind:addParam("active", "Combo", SCRIPT_PARAM_ONKEYDOWN, false, 32)
+	Menu.bind:addParam("auto", "Auto Spell", SCRIPT_PARAM_ONKEYTOGGLE, true, string.byte("N"))
+	-- Farming Options
+	Menu:addSubMenu("Farming","farm")
+	Menu.farm:addParam("JungleFarm", "JungleFarm", SCRIPT_PARAM_ONKEYDOWN, false,string.byte("G"))
+	Menu.farm:addParam("LaneClear", "LaneClear", SCRIPT_PARAM_ONKEYDOWN, false,string.byte("V"))
+	Menu.farm:addParam("sep1", "-- Wave Clear Options --", SCRIPT_PARAM_INFO, "")
+	Menu.farm:addParam("tigerAttacks", "Tiger - Attacks",SCRIPT_PARAM_SLICE, 4, 1, 10, 0)
+	Menu.farm:addParam("phoenixAttacks", "Phoenix - Attacks",SCRIPT_PARAM_SLICE, 3, 1, 10, 0)
+	Menu.farm:addParam("turtleAttacks", "Turtle - Attacks",SCRIPT_PARAM_SLICE, 4, 1, 10, 0)
+	
+	-- Draw
+	Menu:addSubMenu("Draw","Draw")
+	Menu.Draw:addParam("drawq", "Draw Q", SCRIPT_PARAM_ONOFF, true)
+	Menu.Draw:addParam("draww", "Draw W", SCRIPT_PARAM_ONOFF, true)
+	Menu.Draw:addParam("drawe", "Draw E", SCRIPT_PARAM_ONOFF, true)
+	Menu.Draw:addParam("drawr", "Draw R", SCRIPT_PARAM_ONOFF, true)
+	Menu.Draw:addParam("drawtext", "Draw Text", SCRIPT_PARAM_ONOFF, true)
+	Orbwalker = SOW(VP)
+	Menu:addSubMenu("Orbwalker", "SOWorb")
+	Orbwalker:LoadToMenu(Menu.SOWorb)
+	Combo = {_Q, _E, _W, _R}
+	DLib:AddToMenu(Menu.Draw,Combo)
+	ts = TargetSelector(TARGET_LOW_HP_PRIORITY,eRng,DAMAGE_PHYSICAL,false)
+	ts.name = "Udyr"
+	Menu:addTS(ts)
+	PrintChat("<font color='#690759'> >> JKUdyr Loaded! Imba Shit</font>")
+end
+
+function OnTick()
+	ts:update()
+	if Menu.bind.active then 
+		fullCombo()
+	end
+	if Menu.bind.auto then
+		Auto()
+	end
+	if Menu.farm.JungleFarm then
+	    JungleFarm()
+	end
+	if Menu.farm.LaneClear then
+	    farm()
+	end
+end
+
+function Auto()
+	if ts.target then
+		if E:IsReady() and E:IsInRange() and not ts.targetHaveBuff("udyrbearstuncheck", ts.target) then
+			CastSpell(_E)
+		end
+		if (ts.targetHaveBuff("udyrbearstuncheck", ts.target) and myHero:GetSpellData(_E).level > 0 and GetDistance(ts.target) <= 400) or (myHero:GetSpellData(_E).level == 0 and GetDistance(ts.target) <= 400) then
+			if Q:IsReady() then
+				CastSpell(_Q)
+			end
+			if R:IsReady() and R:IsInRange() and myHero:GetSpellData(_Q).level >= 1 and Tiger and (AttackCount >= 2 or TigerProc == true) then
+				CastSpell(_R)
+			elseif myHero:GetSpellData(_Q).level == 0 then
+				CastSpell(_R)
+			end
+			if Phoenix == true and (AttackCount >= 3 or FlameBreath == true) then
+				CastSpell(_W)
+			elseif Tiger == true and (AttackCount >= 2 or TigerProc == true) then
+				CastSpell(_W)
+			elseif myHero:GetSpellData(_Q).level == 0 and myHero:GetSpellData(_R).level == 0 then
+				CastSpell(_W)
+			end
+		end
+	end
+end
+
+function JungleFarm()
+				JungleMinions:update()
+					JungleCreep = JungleMinions.objects[1]
+					if ValidTarget(JungleCreep) then
+						if Q:IsReady() and Q:IsInRange(JungleCreep, myHero) then 
+							CastSpell(_Q,JungleCreep)
+						elseif R:IsReady() and R:IsInRange(JungleCreep, myHero) then
+							CastSpell(_R,JungleCreep)
+						end
+					end
+				end
+				
+				
+					
+
+function fullCombo()
+	if ts.target then
+		-- Casting DFG
+		if BRK:IsReady() and BRK:InRange(ts.target) then
+			BRK:Cast(ts.target)
+		end	
+	if ts.target then
+		if E:IsReady() and E:IsInRange() and not ts.targetHaveBuff("udyrbearstuncheck", ts.target) then
+			CastSpell(_E)
+		end
+		if (ts.targetHaveBuff("udyrbearstuncheck", ts.target) and myHero:GetSpellData(_E).level > 0 and GetDistance(ts.target) <= 400) or (myHero:GetSpellData(_E).level == 0 and GetDistance(ts.target) <= 400) then
+			if Q:IsReady() then
+				CastSpell(_Q)
+			end
+			if R:IsReady() and R:IsInRange() and myHero:GetSpellData(_Q).level >= 1 and Tiger and (AttackCount >= 2 or TigerProc == true) then
+				CastSpell(_R)
+			elseif myHero:GetSpellData(_Q).level == 0 then
+				CastSpell(_R)
+			end
+			if Phoenix == true and (AttackCount >= 3 or FlameBreath == true) then
+				CastSpell(_W)
+			elseif Tiger == true and (AttackCount >= 2 or TigerProc == true) then
+				CastSpell(_W)
+			elseif myHero:GetSpellData(_Q).level == 0 and myHero:GetSpellData(_R).level == 0 then
+				CastSpell(_W)
+			end
+		end
+	end
+end
+end
+
+
+
+function Damage(target)
+  if target then
+    local qDmg = getDmg("Q", target, myHero)
+    local eDmg = getDmg("E", target, myHero)
+	local rDmg = getDmg("R", target, myHero)
+    local brkDmg = (GetInventorySlotItem(3153) ~= nil and getDmg("BRK", target, myHero)) or 0
+    local damageAmp = (GetInventorySlotItem(3153) ~= nil and 1.5) or 1
+		local currentDamage = 0
+    
+    if Q:IsReady() then
+     currentDamage = currentDamage + qDmg
+    end
+   
+    if E:IsReady() then
+     currentDamage = currentDamage + eDmg
+    end
+  
+	if R:IsReady() then
+		currentDamage = currentDamage + rDmg
+	end
+	 
+    if BRK:IsReady() then
+     currentDamage = (currentDamage * damageAmp) + brkDmg
+    end
+		return currentDamage
+  end
+	
+end
+
+function farm()
+	if Menu.farm.LaneClear then
+		if Minion and not Minion.dead and GetDistance(Minion) <= 600 then
+			if rLevel > qLevel or (rLevel == qLevel and rLevel == 5) then
+				if R:IsReady() and (TurtleCount >= Menu.turtleAttacks or TurtleCount == 0) then
+					CastSpell(_R)
+				end
+			elseif Q:IsReady() and (TurtleCount >= Menu.turtleAttacks or TurtleCount == 0) then
+				CastSpell(_Q)
+			end
+			if Phoenix == true and AttackCount >= Menu.phoenixAttacks and FlameBreath == true then
+				CastSpell(_W)
+			elseif Tiger == true and AttackCount >= Menu.tigerAttacks then
+				CastSpell(_W)
+			end
+		end
+	end
+end
+
+function OnDraw()
+	if Menu.Draw.drawq then
+		DrawCircle(myHero.x,myHero.y,myHero.z,qRng,0xFFFF0000)
+	end 
+	if Menu.Draw.draww then
+		DrawCircle(myHero.x,myHero.y,myHero.z,wRng,0xFFFF0000)
+	end
+	if Menu.Draw.drawe then
+		DrawCircle(myHero.x,myHero.y,myHero.z,eRng,0xFFFF0000)
+	end
+	if Menu.Draw.drawr then
+		DrawCircle(myHero.x,myHero.y,myHero.z,rRng,0xFFFF0000)
+	end
+	if Menu.drawtext then
+		for i, target in ipairs(GetEnemyHeroes()) do
+			if ValidTarget(target) and target.team ~= myHero.team and target.dead ~= true then
+				if Damage(target) > target.health then
+					PrintFloatText(target,0,"Killable")
+				end
+			end
+		end
+	end
+end
+
+function OnCreateObj(obj)
+	if GetDistance(obj) <= 70 and (obj.name == "Udyr_PhoenixBreath_cas.troy" or obj.name == "Udyr_Spirit_Phoenix_Breath_cas.troy") then
+		FlameBreath = true
+	end
+	if GetDistance(obj) <= 450 and (obj.name == "udyr_tiger_claw_tar.troy" or obj.name == "Udyr_Spirit_Tiger_Claw_tar.troy") then
+		TigerProc = true
+	end
+end
+
+function OnDeleteObj(obj)
+	if GetDistance(obj) <= 70 and (obj.name == "Udyr_PhoenixBreath_cas.troy" or obj.name == "Udyr_Spirit_Phoenix_Breath_cas.troy") then
+		FlameBreath = false
+	end
+	if GetDistance(obj) <= 450 and (obj.name == "udyr_tiger_claw_tar.troy" or obj.name == "Udyr_Spirit_Tiger_Claw_tar.troy") then
+		TigerProc = false
+	end
+end
