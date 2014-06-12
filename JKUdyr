@@ -24,7 +24,7 @@ if not VIP_USER or myHero.charName ~= "Udyr" then return end
 	printMessage("Loaded")
 --}
 --{ Initiate Data Load
-	local Karthus = {
+	local Udyr = {
 		Q = {range = 600, speed = math.huge, delay = 0.5, DamageType = _PHYSICAL, BaseDamage = 30, DamagePerLevel = 50, ScalingStat = _PHYSICAL, PercentScaling = _AD, Condition = 0.15, Extra = function() return (myHero:CanUseSpell(_Q) == READY) end},
 		W = {range = 600, speed = math.huge, delay = 0.5, DamageType = _PHYSICAL, BaseDamage = 0, DamagePerLevel = 0, ScalingStat = _MAGIC, PercentScaling = _AP, Condition = 0.0, Extra = function() return (myHero:CanUseSpell(_W) == READY) end},
 		E = {range = 600, speed = math.huge, delay = 0.5, DamageType = _PHYSICAL, BaseDamage = 30, DamagePerLevel = 20, ScalingStat = _MAGIC, PercentScaling = _AP, Condition = 0.2, Extra = function() return (myHero:CanUseSpell(_E) == READY) end},
