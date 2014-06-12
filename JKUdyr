@@ -252,3 +252,33 @@ function OnDeleteObj(obj)
 		TigerProc = false
 	end
 end
+
+function OnProcessSpell(unit, spell)
+  if unit.isMe then
+		if spell and spell.name == myHero:GetSpellData(_Q).name then
+			Tiger, Turtle, Bear, Phoenix = true, false, false, false
+			AttackCount, TurtleCount = 0, 0
+		end
+		if spell and spell.name == myHero:GetSpellData(_W).name then
+			Tiger, Turtle, Bear, Phoenix = false, true, false, false
+			AttackCount, TurtleCount = 0, 0
+		end
+		if spell and spell.name == myHero:GetSpellData(_E).name then
+			Tiger, Turtle, Bear, Phoenix = false, false, true, false
+			AttackCount, TurtleCount = 0, 0
+		end
+		if spell and spell.name == myHero:GetSpellData(_R).name then     
+			Tiger, Turtle, Bear, Phoenix = false, false, false, true
+			AttackCount, TurtleCount = 0, 0
+		end
+		if spell.name:find("Attack") then
+			if (Target and spell.target == Target) or (Minion and spell.target == Minion) then
+				if Tiger == true or Phoenix == true then
+					AttackCount = AttackCount + 1
+				elseif Turtle == true then
+					TurtleCount = TurtleCount + 1
+				end
+			end
+		end
+	end
+end
