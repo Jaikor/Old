@@ -92,10 +92,10 @@ end
 
 function Auto()
 	if ts.target then
-		if E:IsReady() and E:IsInRange() and not ts.targetHaveBuff("udyrbearstuncheck", ts.target) then
+		if E:IsReady() and E:IsInRange() and not TargetHaveBuff("udyrbearstuncheck", ts.target) then
 			CastSpell(_E)
 		end
-		if (ts.targetHaveBuff("udyrbearstuncheck", ts.target) and myHero:GetSpellData(_E).level > 0 and GetDistance(ts.target) <= 400) or (myHero:GetSpellData(_E).level == 0 and GetDistance(ts.target) <= 400) then
+		if (TargetHaveBuff("udyrbearstuncheck", ts.target) and myHero:GetSpellData(_E).level > 0 and GetDistance(ts.target) <= 400) or (myHero:GetSpellData(_E).level == 0 and GetDistance(ts.target) <= 400) then
 			if Q:IsReady() then
 				CastSpell(_Q)
 			end
@@ -137,10 +137,10 @@ function fullCombo()
 			BRK:Cast(ts.target)
 		end	
 	if ts.target then
-		if E:IsReady() and E:IsInRange() and not ts.targetHaveBuff("udyrbearstuncheck", ts.target) then
+		if E:IsReady() and E:IsInRange() and not TargetHaveBuff("udyrbearstuncheck", ts.target) then
 			CastSpell(_E)
 		end
-		if (ts.targetHaveBuff("udyrbearstuncheck", ts.target) and myHero:GetSpellData(_E).level > 0 and GetDistance(ts.target) <= 400) or (myHero:GetSpellData(_E).level == 0 and GetDistance(ts.target) <= 400) then
+		if (TargetHaveBuff("udyrbearstuncheck", ts.target) and myHero:GetSpellData(_E).level > 0 and GetDistance(ts.target) <= 400) or (myHero:GetSpellData(_E).level == 0 and GetDistance(ts.target) <= 400) then
 			if Q:IsReady() then
 				CastSpell(_Q)
 			end
